@@ -21,26 +21,27 @@ pub struct Guid {
 }
 
 impl Serialize for Guid {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         self.uuid.to_string().serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for Guid {
-    fn deserialize<D>(deserializer: D) -> Result<Guid, D::Error> where D: Deserializer<'de>,
+    fn deserialize<D>(deserializer: D) -> Result<Guid, D::Error>
+    where
+        D: Deserializer<'de>,
     {
         use serde::de::Error;
 
         let result = String::deserialize(deserializer);
         match result {
-            Ok(uuid) => {
-                Uuid::parse_str(&uuid)
-                    .map(|uuid| Guid { uuid })
-                    .map_err(|_| D::Error::custom("Invalid uuid"))
-            }
-            Err(err) => {
-                Err(err)
-            }
+            Ok(uuid) => Uuid::parse_str(&uuid)
+                .map(|uuid| Guid { uuid })
+                .map_err(|_| D::Error::custom("Invalid uuid")),
+            Err(err) => Err(err),
         }
     }
 }
@@ -53,7 +54,7 @@ impl fmt::Display for Guid {
 
 impl fmt::Debug for Guid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.uuid.hyphenated())
+        write!(f, "{}", self.uuid.to_hyphenated())
     }
 }
 
@@ -71,7 +72,9 @@ impl BinaryEncoder<Guid> for Guid {
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
         let mut bytes = [0u8; 16];
         process_decode_io_result(stream.read_exact(&mut bytes))?;
-        Ok(Guid { uuid: Uuid::from_bytes(&bytes).unwrap() })
+        Ok(Guid {
+            uuid: Uuid::from_bytes(bytes),
+        })
     }
 }
 
@@ -79,9 +82,7 @@ impl FromStr for Guid {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Uuid::from_str(s).map(|uuid| {
-            Guid { uuid }
-        }).map_err(|err| {
+        Uuid::from_str(s).map(|uuid| Guid { uuid }).map_err(|err| {
             error!("Guid cannot be parsed from string, err = {:?}", err);
         })
     }
@@ -101,7 +102,9 @@ impl Guid {
 
     /// Creates a random Guid
     pub fn new() -> Guid {
-        Guid { uuid: Uuid::new_v4() }
+        Guid {
+            uuid: Uuid::new_v4(),
+        }
     }
 
     /// Returns the bytes of the Guid
@@ -110,7 +113,9 @@ impl Guid {
     }
 
     // Creates a guid from bytes
-    pub fn from_bytes(bytes: &[u8; 16]) -> Guid {
-        Guid { uuid: Uuid::from_bytes(&bytes[..]).unwrap() }
+    pub fn from_bytes(bytes: [u8; 16]) -> Guid {
+        Guid {
+            uuid: Uuid::from_bytes(bytes),
+        }
     }
 }
